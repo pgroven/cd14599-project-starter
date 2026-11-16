@@ -4,6 +4,8 @@ from ..order_tracker import OrderTracker
 
 # --- Fixtures for Unit Tests ---
 
+
+
 @pytest.fixture
 def mock_storage():
     """
@@ -26,4 +28,33 @@ def order_tracker(mock_storage):
 
 #
 # --- TODO: add test functions below this line ---
-#
+def test_add_order_successfully(order_tracker, mock_storage):
+        """Tests adding a new order with default 'pending' status."""
+        order_tracker.add_order("ORD001", "Laptop", 1, "CUST001")
+        
+        # We expect save_order to be called once
+        mock_storage.save_order.assert_called_once()
+
+def add_order(self, order_id: str, item_name: str, quantity: int, customer_id: str, status: str = "pending"):
+        order = {
+            "order_id": order_id,
+            "item_name": item_name,
+            "quantity": quantity,
+            "customer_id": customer_id,
+            "status": status
+        }
+        self.storage.save_order(order_id, order)
+def add_order(self, order_id: str, item_name: str, quantity: int, customer_id: str, status: str = "pending"):
+        # This is the new logic
+        if self.storage.get_order(order_id):
+            raise ValueError(f"Order with ID '{order_id}' already exists.")
+
+        order = {
+            "order_id": order_id,
+            "item_name": item_name,
+            "quantity": quantity,
+            "customer_id": customer_id,
+            "status": status
+        }
+        self.storage.save_order(order_id, order)
+        
