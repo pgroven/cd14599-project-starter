@@ -26,8 +26,6 @@ def order_tracker(mock_storage):
     """
     return OrderTracker(mock_storage)
 
-#
-# --- TODO: add test functions below this line ---
 def test_add_order_successfully(order_tracker, mock_storage):
         """Tests adding a new order with default 'pending' status."""
         order_tracker.add_order("ORD001", "Laptop", 1, "CUST001")
@@ -35,26 +33,83 @@ def test_add_order_successfully(order_tracker, mock_storage):
         # We expect save_order to be called once
         mock_storage.save_order.assert_called_once()
 
-def add_order(self, order_id: str, item_name: str, quantity: int, customer_id: str, status: str = "pending"):
-        order = {
-            "order_id": order_id,
-            "item_name": item_name,
-            "quantity": quantity,
-            "customer_id": customer_id,
-            "status": status
-        }
-        self.storage.save_order(order_id, order)
-def add_order(self, order_id: str, item_name: str, quantity: int, customer_id: str, status: str = "pending"):
-        # This is the new logic
-        if self.storage.get_order(order_id):
-            raise ValueError(f"Order with ID '{order_id}' already exists.")
 
-        order = {
-            "order_id": order_id,
-            "item_name": item_name,
-            "quantity": quantity,
-            "customer_id": customer_id,
-            "status": status
-        }
-        self.storage.save_order(order_id, order)
-        
+def test_get_order_by_id_found(order_tracker, mock_storage):
+    order = {"order_id": "ORD001", "status": "pending"}
+    mock_storage.get_order.return_value = order
+
+    assert order_tracker.get_order_by_id("ORD001") == order
+    mock_storage.get_order.assert_called_once_with("ORD001")
+
+
+def test_get_order_by_id_not_found(order_tracker, mock_storage):
+    assert order_tracker.get_order_by_id("missing") is None
+    mock_storage.get_order.assert_called_once_with("missing")
+
+
+@pytest.mark.parametrize(
+    ("old_status", "new_status"),
+    [("pending", "shipped"), ("shipped", "delivered")],
+)
+def test_update_order_status_success(
+    order_tracker, mock_storage, old_status, new_status
+):
+    mock_storage.get_order.return_value = {
+        "order_id": "ORD001",
+        "item_name": "Laptop",
+        "status": old_status,
+    }
+    expected_order = {
+        "order_id": "ORD001",
+        "item_name": "Laptop",
+        "status": new_status,
+    }
+
+    assert order_tracker.update_order_status("ORD001", new_status) == expected_order
+    mock_storage.get_order.assert_called_once_with("ORD001")
+    mock_storage.save_order.assert_called_once_with("ORD001", expected_order)
+
+
+def test_update_order_status_not_found(order_tracker, mock_storage):
+    assert order_tracker.update_order_status("missing", "shipped") is None
+    mock_storage.get_order.assert_called_once_with("missing")
+    mock_storage.save_order.assert_not_called()
+
+
+def test_list_all_orders(order_tracker, mock_storage):
+    orders = {
+        "ORD001": {"order_id": "ORD001", "status": "pending"},
+        "ORD002": {"order_id": "ORD002", "status": "shipped"},
+    }
+    mock_storage.get_all_orders.return_value = orders
+
+    assert order_tracker.list_all_orders() == list(orders.values())
+    mock_storage.get_all_orders.assert_called_once_with()
+
+
+def test_list_all_orders_returns_empty_list(order_tracker, mock_storage):
+    assert order_tracker.list_all_orders() == []
+    mock_storage.get_all_orders.assert_called_once_with()
+
+
+def test_list_orders_by_status(order_tracker, mock_storage):
+    pending1 = {"order_id": "ORD001", "status": "pending"}
+    shipped = {"order_id": "ORD002", "status": "shipped"}
+    pending2 = {"order_id": "ORD003", "status": "pending"}
+    mock_storage.get_all_orders.return_value = {
+        "ORD001": pending1,
+        "ORD002": shipped,
+        "ORD003": pending2,
+    }
+
+    assert order_tracker.list_orders_by_status("pending") == [pending1, pending2]
+    mock_storage.get_all_orders.assert_called_once_with()
+
+
+def test_list_orders_by_status_empty(order_tracker, mock_storage):
+    mock_storage.get_all_orders.return_value = {
+        "ORD001": {"order_id": "ORD001", "status": "pending"}
+    }
+
+    assert order_tracker.list_orders_by_status("shipped") == []
+    mock_storage.get_all_orders.assert_called_once_with()
